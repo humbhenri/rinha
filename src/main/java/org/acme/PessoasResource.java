@@ -7,6 +7,7 @@ import org.jboss.logging.Logger;
 import jakarta.transaction.*;
 import org.postgresql.util.PSQLException;
 import jakarta.persistence.*;
+import java.util.*;
 
 @Path("/pessoas")
 @Produces("application/json")
@@ -23,7 +24,7 @@ public class PessoasResource {
       pessoaEntity.nome = pessoa.getNome();
       pessoaEntity.apelido = pessoa.getApelido();
       pessoaEntity.nascimento = pessoa.getNascimento();
-      pessoaEntity.persistAndFlush();
+      pessoaEntity.persistAndFlush(); // force 
       return Response.noContent().build();
     } catch(PersistenceException e) {
       log.error(e.getMessage(), e);
@@ -38,8 +39,11 @@ public class PessoasResource {
 
   @GET
   @Path("/{id}")
-  public Response consulta(Long idPessoa) {
-    throw new UnsupportedOperationException();
+  public Response consulta(@PathParam("id") String idPessoa) {
+    log.info("uuid = " + idPessoa);
+    var pessoa = PessoaEntity.findByIdOptional(UUID.fromString(idPessoa))
+      .orElseThrow(() -> new NotFoundException());
+    return Response.ok(pessoa).build();
   }
 
 }

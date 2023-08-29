@@ -20,7 +20,7 @@ public class PessoasResource {
   
   @POST
   @Transactional
-  public Response cria(@Valid PessoaDTO pessoa) {
+  public Response cria(@Valid PessoaDTO pessoa, @Context UriInfo uriInfo) {
     try {
       var pessoaEntity = new PessoaEntity();
       pessoaEntity.nome = pessoa.getNome();
@@ -30,7 +30,9 @@ public class PessoasResource {
         pessoaEntity.stack = pessoa.getStack().stream().collect(Collectors.joining(","));
       }
       pessoaEntity.persistAndFlush(); // force exceptions
-      return Response.noContent().build();
+      UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
+      uriBuilder.path(pessoaEntity.id.toString());
+      return Response.created(uriBuilder.build()).build();
     } catch(PersistenceException e) {
       log.error(e.getMessage(), e);
       return Response.status(422).entity(e.getMessage()).build();

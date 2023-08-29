@@ -42,16 +42,17 @@ public class PessoasResourceTest {
 
     @Test
     public void testApelidoNaoPodeSerRepetido() {
+        var apelido = UUID.randomUUID().toString();
         given()
             .contentType("application/json")
-            .body("{ \"apelido\" : \"josé\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
             .when().post("/pessoas")
             .then()
-            .statusCode(204);
+            .statusCode(201);
 
         given()
             .contentType("application/json")
-            .body("{ \"apelido\" : \"josé\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\"] }")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\"] }")
             .when().post("/pessoas")
             .then()
             .statusCode(422);

@@ -49,17 +49,15 @@ public class PessoasResource {
 
   @GET
   public Response pesquisa(@QueryParam("t") String termoBusca) {
-    if (termoBusca != null && termoBusca.length() == 0) {
-      return Response.status(404).build();
+    if (termoBusca == null) {
+      return Response.status(400).build();
     }
     var predicates = new ArrayList<String>();
     var params = new HashMap<String, Object>();
-    if (termoBusca != null) {
-      predicates.add("apelido ilike :termoBusca");
-      predicates.add("nome ilike :termoBusca");
-      predicates.add("stack ilike :termoBusca");
-      params.put("termoBusca", "%"+termoBusca+"%");
-    }
+    predicates.add("apelido ilike :termoBusca");
+    predicates.add("nome ilike :termoBusca");
+    predicates.add("stack ilike :termoBusca");
+    params.put("termoBusca", "%"+termoBusca+"%");
     var whereClauses = predicates.stream().collect(Collectors.joining(" or "));
     log.info(whereClauses);
     var pessoas = predicates.isEmpty() ? PessoaEntity.listAll() :

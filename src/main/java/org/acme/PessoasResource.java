@@ -5,9 +5,11 @@ import jakarta.ws.rs.core.*;
 import jakarta.validation.Valid;
 import org.jboss.logging.Logger;
 import jakarta.transaction.*;
-import org.postgresql.util.PSQLException;
 import jakarta.persistence.*;
 import java.util.*;
+import java.util.stream.*;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.panache.common.Page;
 
 @Path("/pessoas")
 @Produces("application/json")
@@ -24,7 +26,10 @@ public class PessoasResource {
       pessoaEntity.nome = pessoa.getNome();
       pessoaEntity.apelido = pessoa.getApelido();
       pessoaEntity.nascimento = pessoa.getNascimento();
-      pessoaEntity.persistAndFlush(); // force 
+      if (pessoa.getStack() != null) {
+        pessoaEntity.stack = pessoa.getStack().stream().collect(Collectors.joining(","));
+      }
+      pessoaEntity.persistAndFlush(); // force exceptions
       return Response.noContent().build();
     } catch(PersistenceException e) {
       log.error(e.getMessage(), e);
@@ -33,17 +38,36 @@ public class PessoasResource {
   }
 
   @GET
-  public Response lista() {
-    throw new UnsupportedOperationException();
+  @Path("/{id}")
+  public Response consulta(@PathParam("id") String idPessoa) {
+    var pessoa = PessoaEntity.findByIdOptional(UUID.fromString(idPessoa))
+      .orElseThrow(() -> new NotFoundException());
+    return Response.ok(new PessoaDTO((PessoaEntity) pessoa)).build();
   }
 
   @GET
-  @Path("/{id}")
-  public Response consulta(@PathParam("id") String idPessoa) {
-    log.info("uuid = " + idPessoa);
-    var pessoa = PessoaEntity.findByIdOptional(UUID.fromString(idPessoa))
-      .orElseThrow(() -> new NotFoundException());
-    return Response.ok(pessoa).build();
+  public Response pesquisa(@QueryParam("t") String termoBusca) {
+    if (termoBusca != null && termoBusca.length() == 0) {
+      return Response.status(404).build();
+    }
+    var predicates = new ArrayList<String>();
+    var params = new HashMap<String, Object>();
+    if (termoBusca != null) {
+      predicates.add("apelido ilike :termoBusca");
+      predicates.add("nome ilike :termoBusca");
+      predicates.add("stack ilike :termoBusca");
+      params.put("termoBusca", "%"+termoBusca+"%");
+    }
+    var whereClauses = predicates.stream().collect(Collectors.joining(" or "));
+    log.info(whereClauses);
+    var pessoas = predicates.isEmpty() ? PessoaEntity.listAll() :
+      PessoaEntity.find(whereClauses, params).page(Page.ofSize(50)).list();
+    var dtos = pessoas
+      .stream()
+      .map(p -> (PessoaEntity) p)
+      .map(PessoaDTO::new)
+      .toList();
+    return Response.ok(pessoas).build();
   }
 
 }

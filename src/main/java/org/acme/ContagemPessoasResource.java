@@ -7,7 +7,8 @@ import jakarta.ws.rs.core.*;
 public class ContagemPessoasResource {
   
   @GET
-  public Response contagem() {
-    throw new UnsupportedOperationException();
+  @Produces("text/plain")
+  public long contagem() {
+    return PessoaEntity.count();
   }
 }

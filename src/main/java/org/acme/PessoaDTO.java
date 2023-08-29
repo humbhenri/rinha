@@ -14,12 +14,26 @@ import jakarta.validation.constraints.*;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-"apelido",
+  "id",
+  "apelido",
   "nome",
   "nascimento",
   "stack"
 })
 public class PessoaDTO {
+
+  public PessoaDTO() {}
+
+  public PessoaDTO(PessoaEntity entity) {
+    this.apelido = entity.apelido;
+    this.nome = entity.nome;
+    this.nascimento = entity.nascimento;
+    this.stack = entity.getStack();
+    this.id = entity.id.toString();
+  }
+
+  @JsonProperty("id")
+  private String id;
 
   @JsonProperty("apelido")
   @NotNull
@@ -78,6 +92,14 @@ public class PessoaDTO {
   @JsonProperty("stack")
   public void setStack(List<String> stack) {
     this.stack = stack;
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
   }
 
   @JsonAnyGetter

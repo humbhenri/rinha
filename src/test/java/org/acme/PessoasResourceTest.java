@@ -44,7 +44,7 @@ public class PessoasResourceTest {
     public void testApelidoNaoPodeSerRepetido() {
         given()
             .contentType("application/json")
-            .body("{ \"apelido\" : \"josé\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\"] }")
+            .body("{ \"apelido\" : \"josé\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
             .when().post("/pessoas")
             .then()
             .statusCode(204);

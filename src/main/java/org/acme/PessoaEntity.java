@@ -1,10 +1,11 @@
 package org.acme;
 import jakarta.persistence.*;
-import io.quarkus.hibernate.orm.panache.*;
+import io.quarkus.hibernate.reactive.panache.*;
 import java.util.*;
 import java.util.stream.*;
 
 @Entity
+@Cacheable
 @Table(uniqueConstraints=@UniqueConstraint(columnNames="apelido"))
 public class PessoaEntity extends PanacheEntityBase {
 

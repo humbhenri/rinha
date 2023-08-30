@@ -8,49 +8,54 @@ import jakarta.transaction.*;
 import jakarta.persistence.*;
 import java.util.*;
 import java.util.stream.*;
-import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
+import jakarta.enterprise.context.*;
+import io.quarkus.hibernate.reactive.panache.Panache;
+import io.quarkus.panache.common.Sort;
+import io.smallrye.mutiny.CompositeException;
+import io.smallrye.mutiny.Uni;
 
 @Path("/pessoas")
 @Produces("application/json")
 @Consumes("application/json")
+@ApplicationScoped
 public class PessoasResource {
 
   Logger log = Logger.getLogger(PessoasResource.class);
   
   @POST
-  @Transactional
-  public Response cria(@Valid PessoaDTO pessoa, @Context UriInfo uriInfo) {
-    try {
-      var pessoaEntity = new PessoaEntity();
-      pessoaEntity.nome = pessoa.getNome();
-      pessoaEntity.apelido = pessoa.getApelido();
-      pessoaEntity.nascimento = pessoa.getNascimento();
-      if (pessoa.getStack() != null) {
-        pessoaEntity.stack = pessoa.getStack().stream().collect(Collectors.joining(","));
-      }
-      pessoaEntity.persistAndFlush(); // force exceptions
-      UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
-      uriBuilder.path(pessoaEntity.id.toString());
-      return Response.created(uriBuilder.build()).build();
-    } catch(PersistenceException e) {
-      log.error(e.getMessage(), e);
-      return Response.status(422).entity(e.getMessage()).build();
-    }
+  public Uni<Response> cria(@Valid PessoaDTO pessoa, @Context UriInfo uriInfo) {
+    return Panache
+      .withTransaction(() -> {
+        var pessoaEntity = new PessoaEntity();
+        pessoaEntity.nome = pessoa.getNome();
+        pessoaEntity.apelido = pessoa.getApelido();
+        pessoaEntity.nascimento = pessoa.getNascimento();
+        if (pessoa.getStack() != null) {
+          pessoaEntity.stack = pessoa.getStack().stream().collect(Collectors.joining(","));
+        }
+        return pessoaEntity.persistAndFlush(); // force exceptions
+      }).onItem().transform(entity -> {
+        var pessoaEntity = (PessoaEntity) entity;
+        UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
+        uriBuilder.path(pessoaEntity.id.toString());
+        return Response.created(uriBuilder.build()).build();
+      }).onFailure().recoverWithItem(Response.ok().status(422).build());
   }
 
   @GET
   @Path("/{id}")
-  public Response consulta(@PathParam("id") String idPessoa) {
-    var pessoa = PessoaEntity.findByIdOptional(UUID.fromString(idPessoa))
-      .orElseThrow(() -> new NotFoundException());
-    return Response.ok(new PessoaDTO((PessoaEntity) pessoa)).build();
+  public Uni<Response> consulta(@PathParam("id") String idPessoa) {
+    return PessoaEntity.findById(UUID.fromString(idPessoa))
+      .onItem().ifNotNull().transform(entity -> 
+          Response.ok(new PessoaDTO((PessoaEntity)entity)).build())
+      .replaceIfNullWith(() -> Response.status(404).build());
   }
 
   @GET
-  public Response pesquisa(@QueryParam("t") String termoBusca) {
+  public Uni<Response> pesquisa(@QueryParam("t") String termoBusca) {
     if (termoBusca == null) {
-      return Response.status(400).build();
+      throw new WebApplicationException("Termo de busca é obrigatório", 400);
     }
     var predicates = new ArrayList<String>();
     var params = new HashMap<String, Object>();
@@ -60,14 +65,11 @@ public class PessoasResource {
     params.put("termoBusca", "%"+termoBusca+"%");
     var whereClauses = predicates.stream().collect(Collectors.joining(" or "));
     log.info(whereClauses);
-    var pessoas = predicates.isEmpty() ? PessoaEntity.listAll() :
-      PessoaEntity.find(whereClauses, params).page(Page.ofSize(50)).list();
-    var dtos = pessoas
-      .stream()
-      .map(p -> (PessoaEntity) p)
-      .map(PessoaDTO::new)
-      .toList();
-    return Response.ok(pessoas).build();
+    return PessoaEntity.find(whereClauses, params).page(Page.ofSize(50)).list()
+      .onItem()
+      .transform(pessoas -> Response.ok(pessoas.stream().map(p -> (PessoaEntity) p)
+          .map(PessoaDTO::new)
+          .collect(Collectors.toList())).build());
   }
 
 }

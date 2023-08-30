@@ -68,5 +68,21 @@ public class PessoasResourceTest {
         .statusCode(404);
     }
 
+    @Test
+    public void testPesquisa() {
+        var apelido = UUID.randomUUID().toString();
+        //insert
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(201);
+        given()
+            .queryParam("t", apelido)
+            .when().get("/pessoas")
+            .then()
+            .statusCode(200);
+    }
 
 }

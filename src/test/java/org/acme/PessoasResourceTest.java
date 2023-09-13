@@ -42,7 +42,7 @@ public class PessoasResourceTest {
 
     @Test
     public void testApelidoNaoPodeSerRepetido() {
-        var apelido = UUID.randomUUID().toString();
+        var apelido = RandomStringGenerator.generateRandomString(32);
         given()
             .contentType("application/json")
             .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
@@ -68,5 +68,103 @@ public class PessoasResourceTest {
         .statusCode(404);
     }
 
+    @Test
+    public void nomeDeveSerMenorQue100() {
+        var apelido = RandomStringGenerator.generateRandomString(30);
+        var nome = RandomStringGenerator.generateRandomString(101);
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"" + nome + "\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
 
+    @Test
+    public void apelidoDeveSerMenor32() {
+        var apelido = RandomStringGenerator.generateRandomString(33);
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    public void apelidoObrigatorio() {
+        var apelido = "";
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"nome\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\", \"JAVA\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    public void nomeObrigatorio() {
+        var apelido = RandomStringGenerator.generateRandomString(30);
+        var nome = "";
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"" + nome + "\", \"nascimento\" : \"1985-01-01\", \"stack\" : [\"PHP\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    public void nascimentoObrigatorio() {
+        var apelido = RandomStringGenerator.generateRandomString(30);
+        var nome = RandomStringGenerator.generateRandomString(45);
+        var nascimento = "";
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"" + nome + "\", \"nascimento\" : \"" + nascimento + "\", \"stack\" : [\"PHP\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    public void nascimentoFormatoValido() {
+        var apelido = RandomStringGenerator.generateRandomString(30);
+        var nome = RandomStringGenerator.generateRandomString(45);
+        var nascimento = "2000-23-01";
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"" + nome + "\", \"nascimento\" : \"" + nascimento + "\", \"stack\" : [\"PHP\"] }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    public void stackCadaElementeDeveTerNoMax32() {
+        var apelido = RandomStringGenerator.generateRandomString(30);
+        var nome = RandomStringGenerator.generateRandomString(45);
+        var nascimento = "2000-03-01";
+        var stack = "[\"" + RandomStringGenerator.generateRandomString(33) + "\"]";
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"" + nome + "\", \"nascimento\" : \"" + nascimento + "\", \"stack\" : " + stack + " }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    public void stackEhOpcional() {
+        var apelido = RandomStringGenerator.generateRandomString(30);
+        var nome = RandomStringGenerator.generateRandomString(45);
+        var nascimento = "2000-03-01";
+        var stack = "[]";
+        given()
+            .contentType("application/json")
+            .body("{ \"apelido\" : \"" + apelido + "\", \"nome\" : \"" + nome + "\", \"nascimento\" : \"" + nascimento + "\", \"stack\" : " + stack + " }")
+            .when().post("/pessoas")
+            .then()
+            .statusCode(201);
+    }
 }

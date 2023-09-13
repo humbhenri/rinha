@@ -37,17 +37,20 @@ public class PessoaDTO {
 
   @JsonProperty("apelido")
   @NotNull
+  @Size(min=1, max=32)
   private String apelido;
 
   @JsonProperty("nome")
   @NotNull
+  @Size(min=1, max=100)
   private String nome;
 
   @JsonProperty("nascimento")
+  @ValidDateString
   private String nascimento;
 
   @JsonProperty("stack")
-  @Valid
+  @ValidStackList
   private List<String> stack;
 
   @JsonIgnore

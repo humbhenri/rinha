@@ -16,6 +16,7 @@ public class PessoaEntity extends PanacheEntityBase {
   public String apelido;
   public String nascimento;
   public String stack;
+  public String text;
 
   public List<String> getStack() {
     if (stack == null) {

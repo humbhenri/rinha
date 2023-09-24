@@ -6,18 +6,16 @@ import jakarta.validation.Valid;
 import org.jboss.logging.Logger;
 import jakarta.transaction.*;
 import jakarta.persistence.*;
+
+import java.net.URI;
 import java.util.*;
 import java.util.stream.*;
-import io.quarkus.hibernate.orm.panache.PanacheQuery;
-import io.quarkus.panache.common.Page;
 import jakarta.inject.Inject;
 
 @Path("/pessoas")
 @Produces("application/json")
 @Consumes("application/json")
 public class PessoasResource {
-
-  Logger log = Logger.getLogger(PessoasResource.class);
 
   @Inject
   EntityManager em;
@@ -31,7 +29,7 @@ public class PessoasResource {
       pessoaEntity.apelido = pessoa.getApelido();
       pessoaEntity.nascimento = pessoa.getNascimento();
       if (pessoa.getStack() != null) {
-        pessoaEntity.stack = pessoa.getStack().stream().collect(Collectors.joining(","));
+        pessoaEntity.stack = String.join(",", pessoa.getStack());
       }
       var text = new StringBuilder()
         .append(pessoa.getNome().toLowerCase())
@@ -43,11 +41,8 @@ public class PessoasResource {
       }
       pessoaEntity.text = text.toString();
       pessoaEntity.persistAndFlush(); // force exceptions
-      UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
-      uriBuilder.path(pessoaEntity.id.toString());
-      return Response.created(uriBuilder.build()).build();
+      return Response.created(URI.create("/pessoas/" + pessoaEntity.id)).build();
     } catch(PersistenceException e) {
-      log.error(e.getMessage(), e);
       return Response.status(422).entity(e.getMessage()).build();
     }
   }
@@ -56,7 +51,7 @@ public class PessoasResource {
   @Path("/{id}")
   public Response consulta(@PathParam("id") String idPessoa) {
     var pessoa = PessoaEntity.findByIdOptional(UUID.fromString(idPessoa))
-      .orElseThrow(() -> new NotFoundException());
+      .orElseThrow(NotFoundException::new);
     return Response.ok(new PessoaDTO((PessoaEntity) pessoa)).build();
   }
 

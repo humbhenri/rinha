@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.stream.*;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
+import jakarta.inject.Inject;
 
 @Path("/pessoas")
 @Produces("application/json")
@@ -17,6 +18,9 @@ import io.quarkus.panache.common.Page;
 public class PessoasResource {
 
   Logger log = Logger.getLogger(PessoasResource.class);
+
+  @Inject
+  EntityManager em;
   
   @POST
   @Transactional
@@ -29,6 +33,15 @@ public class PessoasResource {
       if (pessoa.getStack() != null) {
         pessoaEntity.stack = pessoa.getStack().stream().collect(Collectors.joining(","));
       }
+      var text = new StringBuilder()
+        .append(pessoa.getNome().toLowerCase())
+        .append(pessoa.getApelido().toLowerCase());
+      if (pessoa.getStack() != null) {
+        pessoa.getStack().forEach(s -> {
+          text.append(s.toLowerCase());
+        });
+      }
+      pessoaEntity.text = text.toString();
       pessoaEntity.persistAndFlush(); // force exceptions
       UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
       uriBuilder.path(pessoaEntity.id.toString());
@@ -52,22 +65,13 @@ public class PessoasResource {
     if (termoBusca == null) {
       return Response.status(400).build();
     }
-    var predicates = new ArrayList<String>();
-    var params = new HashMap<String, Object>();
-    predicates.add("apelido ilike :termoBusca");
-    predicates.add("nome ilike :termoBusca");
-    predicates.add("stack ilike :termoBusca");
-    params.put("termoBusca", "%"+termoBusca+"%");
-    var whereClauses = predicates.stream().collect(Collectors.joining(" or "));
-    log.info(whereClauses);
-    var pessoas = predicates.isEmpty() ? PessoaEntity.listAll() :
-      PessoaEntity.find(whereClauses, params).page(Page.ofSize(50)).list();
-    var dtos = pessoas
-      .stream()
-      .map(p -> (PessoaEntity) p)
-      .map(PessoaDTO::new)
-      .toList();
-    return Response.ok(pessoas).build();
+    var q = em.createQuery("select p from PessoaEntity p "
+        + "where p.text ilike :term ", PessoaEntity.class);
+    q.setParameter("term", "%"+termoBusca.toLowerCase()+"%");
+    return Response.ok(q.getResultList()
+        .stream()
+        .map(PessoaDTO::new)
+        .collect(Collectors.toList())).build();
   }
 
 }

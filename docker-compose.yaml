@@ -23,8 +23,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: '0.75GB'
+          cpus: '0.5'
+          memory: '1GB'
 
   api2:
     <<: *api
@@ -40,11 +40,6 @@ services:
       - api2
     ports:
       - "9999:9999"
-    ulimits:
-      nproc: 1000000
-      nofile:
-        soft: 1000000
-        hard: 1000000
     deploy:
       resources:
         limits:
@@ -66,13 +61,8 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-    ulimits:
-      nproc: 1000000
-      nofile:
-        soft: 1000000
-        hard: 1000000
     deploy:
       resources:
         limits:
-          cpus: '0.75'
-          memory: '1.0GB'
+          cpus: '0.25'
+          memory: '0.5GB'
